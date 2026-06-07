@@ -1,0 +1,220 @@
+
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: var(--font-sans); }
+  #app { min-height: 600px; display: flex; flex-direction: column; align-items: center; justify-content: flex-start; padding: 2rem 1rem; }
+  .header { text-align: center; margin-bottom: 2rem; }
+  .header h1 { font-size: 28px; font-weight: 500; color: var(--color-text-primary); margin-bottom: 8px; }
+  .header p { font-size: 16px; color: var(--color-text-secondary); line-height: 1.6; }
+  .ticket-card { background: var(--color-background-primary); border: 0.5px solid var(--color-border-tertiary); border-radius: var(--border-radius-lg); padding: 2rem; max-width: 480px; width: 100%; text-align: center; }
+  .ticket-icon { font-size: 64px; margin-bottom: 1rem; line-height: 1; }
+  .ticket-card h2 { font-size: 20px; font-weight: 500; color: var(--color-text-primary); margin-bottom: 12px; }
+  .ticket-card p { font-size: 15px; color: var(--color-text-secondary); line-height: 1.6; margin-bottom: 1.5rem; }
+  .scan-btn { display: inline-flex; align-items: center; gap: 10px; background: #D85A30; color: white; border: none; border-radius: var(--border-radius-md); padding: 14px 28px; font-size: 17px; font-weight: 500; cursor: pointer; width: 100%; justify-content: center; transition: opacity 0.2s; }
+  .scan-btn:hover { opacity: 0.88; }
+  .scan-btn i { font-size: 22px; }
+  .steps { display: flex; flex-direction: column; gap: 12px; margin-bottom: 1.5rem; text-align: left; }
+  .step { display: flex; align-items: flex-start; gap: 12px; }
+  .step-num { min-width: 28px; height: 28px; border-radius: 50%; background: #FAC775; display: flex; align-items: center; justify-content: center; font-size: 14px; font-weight: 500; color: #633806; }
+  .step-text { font-size: 14px; color: var(--color-text-secondary); line-height: 1.5; padding-top: 4px; }
+  #result-section { display: none; max-width: 480px; width: 100%; text-align: center; }
+  .result-card { background: var(--color-background-primary); border: 0.5px solid var(--color-border-tertiary); border-radius: var(--border-radius-lg); padding: 2rem; }
+  .confetti-icon { font-size: 72px; margin-bottom: 1rem; line-height: 1; animation: bounce 0.6s ease infinite alternate; }
+  @keyframes bounce { from { transform: scale(1); } to { transform: scale(1.1); } }
+  .gift-btn { display: flex; align-items: center; gap: 12px; background: linear-gradient(135deg, #D4537E, #D85A30); border: none; border-radius: 16px; padding: 18px 24px; font-size: 18px; font-weight: 500; color: white; cursor: pointer; width: 100%; justify-content: center; margin-top: 1.5rem; text-decoration: none; }
+  .gift-btn:hover { opacity: 0.9; }
+  .gift-btn i { font-size: 24px; }
+  .from-label { font-size: 13px; color: var(--color-text-secondary); margin-top: 12px; }
+  .error-card { background: #FCEBEB; border: 0.5px solid #F09595; border-radius: var(--border-radius-lg); padding: 1.5rem; max-width: 480px; width: 100%; text-align: center; }
+  .error-card p { color: #791F1F; font-size: 15px; line-height: 1.6; }
+  #error-section { display: none; }
+  .retry-btn { margin-top: 1rem; background: transparent; border: 0.5px solid #A32D2D; border-radius: var(--border-radius-md); padding: 10px 20px; color: #A32D2D; font-size: 14px; cursor: pointer; }
+  .badge { display: inline-block; background: #EAF3DE; color: #3B6D11; border-radius: 20px; font-size: 13px; padding: 4px 14px; margin-bottom: 1rem; }
+  .manual-input-area { margin-top: 1.5rem; border-top: 0.5px solid var(--color-border-tertiary); padding-top: 1rem; }
+  .manual-input-area p { font-size: 13px; color: var(--color-text-secondary); margin-bottom: 8px; }
+  .manual-row { display: flex; gap: 8px; }
+  .manual-row input { flex: 1; padding: 10px 14px; font-size: 15px; border: 0.5px solid var(--color-border-tertiary); border-radius: var(--border-radius-md); background: var(--color-background-secondary); color: var(--color-text-primary); }
+  .manual-row button { padding: 10px 16px; background: var(--color-background-secondary); border: 0.5px solid var(--color-border-secondary); border-radius: var(--border-radius-md); font-size: 14px; cursor: pointer; color: var(--color-text-primary); }
+  .manual-row button:hover { background: var(--color-background-tertiary); }
+</style>
+
+<div id="app">
+  <div class="header">
+    <div style="font-size:48px; margin-bottom:12px;">🎟️</div>
+    <h1>Активация билета</h1>
+    <p>Есть билет с QR-кодом? <br>Отсканируй его и получи своё поздравление!</p>
+  </div>
+
+  <div class="ticket-card" id="scan-section">
+    <div class="steps">
+      <div class="step">
+        <div class="step-num">1</div>
+        <div class="step-text">Возьми билет в руки</div>
+      </div>
+      <div class="step">
+        <div class="step-num">2</div>
+        <div class="step-text">Нажми большую кнопку ниже</div>
+      </div>
+      <div class="step">
+        <div class="step-num">3</div>
+        <div class="step-text">Наведи камеру на QR-код на билете</div>
+      </div>
+      <div class="step">
+        <div class="step-num">4</div>
+        <div class="step-text">Получи своё поздравление! 🎉</div>
+      </div>
+    </div>
+    <button class="scan-btn" onclick="startScan()">
+      <i class="ti ti-qrcode" aria-hidden="true"></i>
+      Сканировать QR-код
+    </button>
+    <div class="manual-input-area">
+      <p>Или введи код с билета вручную:</p>
+      <div class="manual-row">
+        <input type="text" id="manual-code" placeholder="Введи код (n или s)" maxlength="5" />
+        <button onclick="manualActivate()">OK</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="result-section">
+    <div class="result-card">
+      <div class="badge" id="result-badge">Поздравление активировано!</div>
+      <div class="confetti-icon">🎉</div>
+      <h2 id="result-title" style="font-size:22px; margin-bottom:8px;"></h2>
+      <p id="result-subtitle" style="font-size:15px; color:var(--color-text-secondary); margin-bottom:0;"></p>
+      <a id="result-link" class="gift-btn" href="#" target="_blank" rel="noopener">
+        <i class="ti ti-player-play" aria-hidden="true"></i>
+        <span id="result-btn-text">Открыть поздравление</span>
+      </a>
+      <p class="from-label">с любовью ❤️</p>
+      <button onclick="resetScan()" style="margin-top:1rem; background:transparent; border:0.5px solid var(--color-border-secondary); border-radius:var(--border-radius-md); padding:8px 18px; color:var(--color-text-secondary); font-size:13px; cursor:pointer;">
+        Активировать другой билет
+      </button>
+    </div>
+  </div>
+
+  <div id="error-section">
+    <div class="error-card">
+      <div style="font-size:36px; margin-bottom:8px;">😕</div>
+      <p>Не удалось прочитать QR-код.<br>Попробуй ещё раз или введи код вручную.</p>
+      <button class="retry-btn" onclick="resetScan()">Попробовать снова</button>
+    </div>
+  </div>
+</div>
+
+<script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
+<script>
+const configs = {
+  n: {
+    title: "Спасибо, Няняшка!",
+    subtitle: "Вот твоё поздравление 🎁",
+    btnText: "Открыть поздравление",
+    url: "https://youtu.be/t37LxEuXiUc?si=SHCIDWcmPVydvmdt",
+    badge: "Билет для Няняшки ✨"
+  },
+  s: {
+    title: "Спасибо, Сарока!",
+    subtitle: "Вот твоё поздравление 🎁",
+    btnText: "Открыть поздравление",
+    url: "https://youtu.be/b7FoeG08iQw?si=272woJoaKGJcRXkj",
+    badge: "Билет для Сароки ✨"
+  }
+};
+
+let html5QrCode = null;
+
+function startScan() {
+  const scanSection = document.getElementById('scan-section');
+  const btn = scanSection.querySelector('.scan-btn');
+  btn.disabled = true;
+  btn.innerHTML = '<i class="ti ti-loader" aria-hidden="true"></i> Открываем камеру...';
+
+  if (!document.getElementById('reader')) {
+    const reader = document.createElement('div');
+    reader.id = 'reader';
+    reader.style.cssText = 'width:100%; margin:1rem 0; border-radius:12px; overflow:hidden;';
+    scanSection.insertBefore(reader, btn.parentNode.querySelector('.manual-input-area'));
+  }
+
+  html5QrCode = new Html5Qrcode("reader");
+  html5QrCode.start(
+    { facingMode: "environment" },
+    { fps: 10, qrbox: { width: 220, height: 220 } },
+    (decodedText) => {
+      html5QrCode.stop().then(() => {
+        processCode(decodedText.trim().toLowerCase());
+      }).catch(() => {
+        processCode(decodedText.trim().toLowerCase());
+      });
+    },
+    () => {}
+  ).catch(() => {
+    btn.disabled = false;
+    btn.innerHTML = '<i class="ti ti-qrcode" aria-hidden="true"></i> Сканировать QR-код';
+    const r = document.getElementById('reader');
+    if (r) r.remove();
+    showError();
+  });
+
+  btn.disabled = false;
+  btn.innerHTML = '<i class="ti ti-x" aria-hidden="true"></i> Отменить сканирование';
+  btn.onclick = cancelScan;
+}
+
+function cancelScan() {
+  if (html5QrCode) {
+    html5QrCode.stop().catch(() => {});
+  }
+  const r = document.getElementById('reader');
+  if (r) r.remove();
+  const btn = document.querySelector('.scan-btn');
+  btn.disabled = false;
+  btn.innerHTML = '<i class="ti ti-qrcode" aria-hidden="true"></i> Сканировать QR-код';
+  btn.onclick = startScan;
+}
+
+function manualActivate() {
+  const input = document.getElementById('manual-code');
+  const code = input.value.trim().toLowerCase();
+  if (!code) return;
+  processCode(code);
+}
+
+function processCode(code) {
+  const cfg = configs[code];
+  if (!cfg) {
+    showError();
+    return;
+  }
+  document.getElementById('scan-section').style.display = 'none';
+  document.getElementById('error-section').style.display = 'none';
+  document.getElementById('result-badge').textContent = cfg.badge;
+  document.getElementById('result-title').textContent = cfg.title;
+  document.getElementById('result-subtitle').textContent = cfg.subtitle;
+  document.getElementById('result-btn-text').textContent = cfg.btnText;
+  document.getElementById('result-link').href = cfg.url;
+  document.getElementById('result-section').style.display = 'block';
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+
+function showError() {
+  document.getElementById('error-section').style.display = 'block';
+  document.getElementById('error-section').scrollIntoView({ behavior: 'smooth' });
+}
+
+function resetScan() {
+  cancelScan();
+  document.getElementById('scan-section').style.display = 'block';
+  document.getElementById('result-section').style.display = 'none';
+  document.getElementById('error-section').style.display = 'none';
+  document.getElementById('manual-code').value = '';
+  const btn = document.querySelector('.scan-btn');
+  btn.innerHTML = '<i class="ti ti-qrcode" aria-hidden="true"></i> Сканировать QR-код';
+  btn.onclick = startScan;
+}
+
+document.getElementById('manual-code').addEventListener('keydown', (e) => {
+  if (e.key === 'Enter') manualActivate();
+});
+</script>

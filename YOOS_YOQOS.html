@@ -1,0 +1,1039 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>YOOS / YOQOS Installer</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;900&family=Fira+Code:wght@400;500;600&display=swap');
+
+  :root {
+    --bg: #07070f;
+    --bg2: #0d0d1a;
+    --bg3: #131325;
+    --purple: #7c3aed;
+    --purple2: #9f67ff;
+    --cyan: #06b6d4;
+    --cyan2: #22d3ee;
+    --green: #10b981;
+    --red: #ef4444;
+    --orange: #f97316;
+    --text: #f0f0ff;
+    --text2: #9999cc;
+    --text3: #5555aa;
+    --border: rgba(124,58,237,0.3);
+    --glass: rgba(13,13,26,0.85);
+  }
+
+  * { margin:0; padding:0; box-sizing:border-box; }
+  html, body { width:100%; height:100%; overflow:hidden; background:var(--bg); color:var(--text); font-family:'Inter',sans-serif; }
+
+  /* ─── SCREENS ─── */
+  .screen { position:fixed; inset:0; display:flex; flex-direction:column; align-items:center; justify-content:center; transition:opacity .5s, transform .5s; }
+  .screen.hidden { opacity:0; pointer-events:none; transform:scale(1.03); }
+
+  /* ─── STARS BG ─── */
+  #stars { position:fixed; inset:0; z-index:0; }
+  canvas#starsCanvas { width:100%; height:100%; }
+
+  /* ─── SPLASH ─── */
+  #splash { z-index:10; background:radial-gradient(ellipse at center, #1a0a35 0%, var(--bg) 70%); }
+  .logo-orbit { position:relative; width:140px; height:140px; margin-bottom:24px; }
+  .logo-ring { position:absolute; inset:0; border-radius:50%; border:2px solid transparent; background:linear-gradient(var(--bg),var(--bg)) padding-box, linear-gradient(135deg,var(--purple),var(--cyan)) border-box; animation:spin 4s linear infinite; }
+  .logo-ring2 { position:absolute; inset:14px; border-radius:50%; border:1.5px solid transparent; background:linear-gradient(var(--bg),var(--bg)) padding-box, linear-gradient(315deg,var(--cyan),var(--purple)) border-box; animation:spin 2.5s linear infinite reverse; }
+  .logo-center { position:absolute; inset:32px; border-radius:50%; background:linear-gradient(135deg,var(--purple),var(--cyan)); display:flex; align-items:center; justify-content:center; font-size:28px; font-weight:900; letter-spacing:-2px; box-shadow:0 0 40px rgba(124,58,237,0.6); }
+  @keyframes spin { to { transform:rotate(360deg); } }
+  .yo-tagline { font-size:13px; color:var(--text3); font-family:'Fira Code',monospace; letter-spacing:4px; text-transform:uppercase; margin-bottom:8px; }
+  .yo-name { font-size:36px; font-weight:900; background:linear-gradient(135deg,var(--purple2),var(--cyan2)); -webkit-background-clip:text; -webkit-text-fill-color:transparent; letter-spacing:-1px; }
+  .yo-sub { font-size:13px; color:var(--text2); margin-top:8px; }
+  .splash-dots { display:flex; gap:8px; margin-top:40px; }
+  .splash-dot { width:8px; height:8px; border-radius:50%; background:var(--purple); animation:dotPulse 1.2s ease-in-out infinite; }
+  .splash-dot:nth-child(2){animation-delay:.2s;background:var(--purple2);}
+  .splash-dot:nth-child(3){animation-delay:.4s;background:var(--cyan);}
+  @keyframes dotPulse { 0%,100%{transform:scale(1);opacity:.5;} 50%{transform:scale(1.4);opacity:1;} }
+
+  /* ─── DEVICE SELECT ─── */
+  #deviceDetect { z-index:10; }
+  .det-bubble { background:var(--glass); border:1px solid var(--border); border-radius:20px; padding:32px 40px; max-width:420px; width:90%; backdrop-filter:blur(20px); text-align:center; }
+  .det-avatar { font-size:56px; margin-bottom:12px; }
+  .det-title { font-size:20px; font-weight:700; margin-bottom:8px; }
+  .det-msg { font-size:14px; color:var(--text2); line-height:1.6; margin-bottom:24px; }
+  .det-btns { display:flex; gap:12px; justify-content:center; }
+  .btn-det { padding:10px 22px; border-radius:10px; border:1.5px solid var(--border); background:rgba(124,58,237,0.1); color:var(--text); font-size:14px; font-weight:600; cursor:pointer; transition:.2s; }
+  .btn-det:hover { background:rgba(124,58,237,0.3); border-color:var(--purple); }
+  .btn-det.active { background:linear-gradient(135deg,var(--purple),var(--cyan)); border-color:transparent; }
+  .btn-confirm { margin-top:20px; padding:12px 32px; border-radius:12px; border:none; background:linear-gradient(135deg,var(--purple),var(--cyan)); color:#fff; font-size:15px; font-weight:700; cursor:pointer; width:100%; transition:.2s; }
+  .btn-confirm:hover { opacity:.85; transform:translateY(-1px); }
+
+  /* ─── WARNINGS ─── */
+  #warnings { z-index:10; }
+  .warn-box { background:var(--glass); border:1px solid rgba(239,68,68,0.4); border-radius:20px; padding:28px 32px; max-width:500px; width:92%; backdrop-filter:blur(20px); }
+  .warn-counter { font-family:'Fira Code',monospace; font-size:12px; color:var(--red); letter-spacing:2px; margin-bottom:16px; }
+  .warn-icon { font-size:40px; margin-bottom:12px; }
+  .warn-title { font-size:17px; font-weight:700; color:#ff6b6b; margin-bottom:10px; }
+  .warn-text { font-size:13.5px; color:var(--text2); line-height:1.7; margin-bottom:24px; }
+  .warn-progress { height:4px; background:rgba(255,255,255,.08); border-radius:4px; margin-bottom:20px; overflow:hidden; }
+  .warn-progress-bar { height:100%; background:linear-gradient(90deg,var(--red),var(--orange)); border-radius:4px; transition:width .4s; }
+  .btn-warn { padding:11px 28px; border-radius:11px; border:1.5px solid rgba(239,68,68,0.5); background:rgba(239,68,68,0.1); color:#ff8888; font-size:14px; font-weight:600; cursor:pointer; transition:.2s; float:right; }
+  .btn-warn:hover { background:rgba(239,68,68,0.2); }
+  .warn-reassure { font-size:13px; color:var(--green); background:rgba(16,185,129,.1); border:1px solid rgba(16,185,129,.3); border-radius:10px; padding:14px 16px; margin-bottom:20px; line-height:1.6; }
+
+  /* ─── INSTALLER ─── */
+  #installer { z-index:10; }
+  .inst-shell { background:var(--glass); border:1px solid var(--border); border-radius:24px; padding:36px 40px; max-width:560px; width:94%; backdrop-filter:blur(24px); }
+  .inst-step-bar { display:flex; gap:0; margin-bottom:32px; counter-reset:step; }
+  .inst-step { flex:1; text-align:center; font-size:11px; color:var(--text3); font-family:'Fira Code',monospace; position:relative; padding-bottom:14px; }
+  .inst-step::before { content:attr(data-n); display:block; width:28px; height:28px; border-radius:50%; border:1.5px solid var(--text3); margin:0 auto 6px; line-height:26px; font-size:12px; }
+  .inst-step::after { content:''; position:absolute; top:14px; left:50%; width:100%; height:1.5px; background:var(--text3); }
+  .inst-step:last-child::after { display:none; }
+  .inst-step.done::before { background:linear-gradient(135deg,var(--purple),var(--cyan)); border-color:transparent; color:#fff; }
+  .inst-step.done { color:var(--text2); }
+  .inst-step.active::before { border-color:var(--purple); color:var(--purple); }
+  .inst-step.active { color:var(--purple2); }
+  .inst-panel { display:none; }
+  .inst-panel.active { display:block; }
+  .inst-h { font-size:22px; font-weight:800; margin-bottom:6px; }
+  .inst-sub { font-size:13px; color:var(--text2); margin-bottom:24px; }
+  .inst-field label { font-size:12px; color:var(--text2); font-family:'Fira Code',monospace; letter-spacing:1px; display:block; margin-bottom:7px; }
+  .inst-field input, .inst-field select { width:100%; background:rgba(255,255,255,.05); border:1.5px solid var(--border); border-radius:10px; color:var(--text); font-size:15px; padding:12px 14px; outline:none; font-family:'Inter',sans-serif; transition:.2s; }
+  .inst-field input:focus, .inst-field select:focus { border-color:var(--purple); background:rgba(124,58,237,.1); }
+  .inst-field select option { background:#1a1a2e; }
+  .inst-field { margin-bottom:18px; }
+  .theme-grid { display:grid; grid-template-columns:repeat(4,1fr); gap:10px; margin-bottom:20px; }
+  .theme-card { aspect-ratio:1; border-radius:12px; cursor:pointer; display:flex; align-items:center; justify-content:center; font-size:18px; border:2.5px solid transparent; transition:.2s; position:relative; overflow:hidden; }
+  .theme-card.selected { border-color:var(--purple); box-shadow:0 0 16px rgba(124,58,237,.5); }
+  .theme-card span { position:relative; z-index:2; font-size:24px; }
+  .wifi-list { display:flex; flex-direction:column; gap:8px; margin-bottom:20px; }
+  .wifi-item { background:rgba(255,255,255,.04); border:1.5px solid var(--border); border-radius:10px; padding:11px 14px; cursor:pointer; display:flex; align-items:center; gap:12px; transition:.2s; }
+  .wifi-item:hover { background:rgba(124,58,237,.1); border-color:var(--purple); }
+  .wifi-item.selected { background:rgba(124,58,237,.15); border-color:var(--purple); }
+  .wifi-bars { display:flex; align-items:flex-end; gap:2px; height:16px; }
+  .wifi-bars span { width:4px; background:var(--text3); border-radius:1px; }
+  .wifi-bars span:nth-child(1){height:4px;}
+  .wifi-bars span:nth-child(2){height:7px;}
+  .wifi-bars span:nth-child(3){height:11px;}
+  .wifi-bars span:nth-child(4){height:16px;}
+  .wifi-item.selected .wifi-bars span { background:var(--cyan); }
+  .wifi-name { flex:1; font-size:14px; font-weight:500; }
+  .wifi-lock { font-size:13px; color:var(--text3); }
+  .btn-next { width:100%; padding:14px; border-radius:12px; border:none; background:linear-gradient(135deg,var(--purple),var(--cyan)); color:#fff; font-size:15px; font-weight:700; cursor:pointer; transition:.2s; margin-top:4px; }
+  .btn-next:hover { opacity:.85; transform:translateY(-1px); }
+  .btn-next:disabled { opacity:.4; transform:none; cursor:default; }
+
+  /* ─── INSTALLING ANIMATION ─── */
+  #installing { z-index:10; }
+  .inst-anim { text-align:center; max-width:400px; width:90%; }
+  .inst-ring-wrap { width:120px; height:120px; margin:0 auto 24px; position:relative; }
+  .inst-ring-svg { width:100%; height:100%; animation:spin 2s linear infinite; }
+  .inst-ring-inner { position:absolute; inset:20px; border-radius:50%; background:linear-gradient(135deg,var(--purple),var(--cyan)); display:flex; align-items:center; justify-content:center; font-size:36px; box-shadow:0 0 30px rgba(124,58,237,.7); }
+  .inst-progress-wrap { background:rgba(255,255,255,.07); border-radius:12px; height:8px; margin:20px 0 12px; overflow:hidden; }
+  .inst-progress-fill { height:100%; background:linear-gradient(90deg,var(--purple),var(--cyan)); border-radius:12px; width:0%; transition:width .3s; }
+  .inst-log { font-family:'Fira Code',monospace; font-size:12px; color:var(--cyan); min-height:20px; text-align:left; padding:8px 12px; background:rgba(6,182,212,.06); border-radius:8px; }
+  .inst-pct { font-size:42px; font-weight:900; background:linear-gradient(135deg,var(--purple2),var(--cyan2)); -webkit-background-clip:text; -webkit-text-fill-color:transparent; }
+
+  /* ─── BOOT SCREEN ─── */
+  #boot { z-index:10; background:var(--bg); flex-direction:column; gap:20px; }
+  .boot-logo { font-size:32px; font-weight:900; background:linear-gradient(135deg,var(--purple2),var(--cyan2)); -webkit-background-clip:text; -webkit-text-fill-color:transparent; letter-spacing:-1px; }
+  .boot-bar-wrap { width:200px; height:4px; background:rgba(255,255,255,.08); border-radius:4px; overflow:hidden; }
+  .boot-bar { height:100%; background:linear-gradient(90deg,var(--purple),var(--cyan)); width:0%; transition:width .15s linear; border-radius:4px; }
+  .boot-tagline { font-size:12px; color:var(--text3); font-family:'Fira Code',monospace; letter-spacing:3px; }
+
+  /* ─── WELCOME TOUR ─── */
+  #welcome { z-index:30; background:rgba(7,7,15,.95); backdrop-filter:blur(20px); }
+  .welcome-card { text-align:center; max-width:420px; width:90%; }
+  .welcome-emoji { font-size:64px; margin-bottom:20px; display:block; animation:welcomePop .6s cubic-bezier(.34,1.56,.64,1) both; }
+  @keyframes welcomePop { from{transform:scale(0);opacity:0;} to{transform:scale(1);opacity:1;} }
+  .welcome-h { font-size:28px; font-weight:900; margin-bottom:10px; }
+  .welcome-h .grad { background:linear-gradient(135deg,var(--purple2),var(--cyan2)); -webkit-background-clip:text; -webkit-text-fill-color:transparent; }
+  .welcome-p { font-size:14px; color:var(--text2); line-height:1.7; margin-bottom:28px; }
+  .tour-dots { display:flex; justify-content:center; gap:8px; margin-bottom:24px; }
+  .tour-dot { width:8px; height:8px; border-radius:50%; background:var(--text3); transition:.3s; }
+  .tour-dot.active { background:var(--purple); width:24px; border-radius:4px; }
+  .btn-tour { padding:13px 40px; border-radius:12px; border:none; background:linear-gradient(135deg,var(--purple),var(--cyan)); color:#fff; font-size:15px; font-weight:700; cursor:pointer; }
+
+  /* ─── DESKTOP (PC) ─── */
+  #desktopPC { z-index:20; display:none; flex-direction:column; background:linear-gradient(135deg,#0f0a2a,#0a1a2e,#0f0a2a); }
+  #desktopPC.visible { display:flex; }
+
+  /* PC TASKBAR */
+  .pc-taskbar { height:44px; background:rgba(7,7,15,.92); border-top:1px solid var(--border); display:flex; align-items:center; padding:0 12px; gap:8px; z-index:25; flex-shrink:0; backdrop-filter:blur(20px); }
+  .pc-start { width:34px; height:34px; border-radius:8px; background:linear-gradient(135deg,var(--purple),var(--cyan)); display:flex; align-items:center; justify-content:center; cursor:pointer; font-size:16px; font-weight:900; flex-shrink:0; transition:.2s; }
+  .pc-start:hover { transform:scale(1.1); }
+  .pc-tasks { flex:1; display:flex; gap:6px; }
+  .pc-task-btn { height:30px; padding:0 12px; border-radius:6px; background:rgba(255,255,255,.07); border:1px solid rgba(255,255,255,.08); color:var(--text2); font-size:12px; cursor:pointer; display:flex; align-items:center; gap:6px; transition:.2s; }
+  .pc-task-btn:hover { background:rgba(124,58,237,.2); color:var(--text); }
+  .pc-task-btn.active { background:rgba(124,58,237,.25); border-color:var(--purple); color:var(--text); }
+  .pc-tray { display:flex; align-items:center; gap:10px; font-size:12px; color:var(--text2); font-family:'Fira Code',monospace; }
+  .pc-tray-icon { cursor:pointer; padding:4px; border-radius:6px; transition:.2s; }
+  .pc-tray-icon:hover { background:rgba(255,255,255,.08); color:var(--text); }
+
+  /* PC DESKTOP AREA */
+  .pc-desktop { flex:1; position:relative; overflow:hidden; padding:12px; }
+  .pc-icons { display:grid; grid-template-columns:repeat(auto-fill, 72px); gap:4px; align-content:start; }
+  .pc-icon { width:72px; padding:8px 4px; border-radius:10px; cursor:pointer; text-align:center; transition:.2s; }
+  .pc-icon:hover { background:rgba(124,58,237,.2); }
+  .pc-icon:active { background:rgba(124,58,237,.4); }
+  .pc-icon-img { font-size:32px; margin-bottom:5px; }
+  .pc-icon-label { font-size:11px; color:var(--text); word-break:break-all; }
+
+  /* PC WINDOW */
+  .pc-window { position:absolute; background:var(--bg2); border:1px solid var(--border); border-radius:14px; min-width:300px; min-height:200px; overflow:hidden; box-shadow:0 20px 60px rgba(0,0,0,.6); z-index:22; display:flex; flex-direction:column; }
+  .pc-window.hidden { display:none; }
+  .pc-win-title { height:38px; background:rgba(7,7,15,.8); display:flex; align-items:center; padding:0 14px; gap:10px; cursor:move; flex-shrink:0; border-bottom:1px solid var(--border); user-select:none; }
+  .pc-win-btns { display:flex; gap:6px; }
+  .pc-win-btn { width:12px; height:12px; border-radius:50%; cursor:pointer; }
+  .pc-win-btn.close { background:#ef4444; }
+  .pc-win-btn.min { background:#f59e0b; }
+  .pc-win-btn.max { background:#10b981; }
+  .pc-win-label { font-size:13px; font-weight:600; flex:1; text-align:center; margin-right:32px; }
+  .pc-win-body { flex:1; overflow:auto; padding:16px; font-size:13px; color:var(--text2); line-height:1.7; }
+
+  /* ABOUT window content */
+  .about-content h2 { font-size:18px; font-weight:800; color:var(--text); margin-bottom:8px; }
+  .about-content p { margin-bottom:8px; }
+  .about-badge { display:inline-block; background:linear-gradient(135deg,var(--purple),var(--cyan)); color:#fff; font-size:11px; font-weight:700; padding:3px 10px; border-radius:20px; margin-bottom:12px; }
+
+  /* TERMINAL window */
+  .terminal-body { background:#060610; font-family:'Fira Code',monospace; font-size:12px; color:#00ff88; padding:16px; line-height:1.8; }
+  .term-prompt { color:var(--purple2); }
+  .term-cmd { color:var(--cyan2); }
+
+  /* FILES window */
+  .files-grid { display:grid; grid-template-columns:repeat(auto-fill,80px); gap:8px; }
+  .file-item { padding:8px; text-align:center; border-radius:8px; cursor:pointer; transition:.2s; }
+  .file-item:hover { background:rgba(124,58,237,.15); }
+  .file-item div:first-child { font-size:28px; margin-bottom:4px; }
+  .file-item div:last-child { font-size:10px; color:var(--text2); }
+
+  /* START MENU */
+  .pc-start-menu { position:absolute; bottom:50px; left:8px; width:280px; background:rgba(10,10,22,.95); border:1px solid var(--border); border-radius:16px; padding:16px; backdrop-filter:blur(30px); z-index:30; display:none; box-shadow:0 -10px 40px rgba(0,0,0,.5); }
+  .pc-start-menu.open { display:block; }
+  .sm-user { display:flex; align-items:center; gap:12px; margin-bottom:16px; padding-bottom:16px; border-bottom:1px solid var(--border); }
+  .sm-avatar { width:40px; height:40px; border-radius:50%; background:linear-gradient(135deg,var(--purple),var(--cyan)); display:flex; align-items:center; justify-content:center; font-size:18px; font-weight:700; flex-shrink:0; }
+  .sm-name { font-size:14px; font-weight:700; }
+  .sm-os { font-size:11px; color:var(--text2); font-family:'Fira Code',monospace; }
+  .sm-apps { display:grid; grid-template-columns:1fr 1fr; gap:6px; }
+  .sm-app { padding:10px; border-radius:10px; background:rgba(255,255,255,.04); cursor:pointer; display:flex; align-items:center; gap:8px; transition:.2s; font-size:13px; }
+  .sm-app:hover { background:rgba(124,58,237,.2); }
+  .sm-app-ico { font-size:18px; }
+  .sm-power { width:100%; margin-top:12px; padding:8px; border-radius:10px; border:1px solid rgba(239,68,68,.3); background:rgba(239,68,68,.08); color:#ff8888; font-size:13px; cursor:pointer; transition:.2s; }
+  .sm-power:hover { background:rgba(239,68,68,.2); }
+
+  /* ─── DESKTOP (MOBILE) ─── */
+  #desktopMobile { z-index:20; display:none; flex-direction:column; background:linear-gradient(160deg,#0f0a2a,#0a1a2e); }
+  #desktopMobile.visible { display:flex; }
+
+  /* MOBILE STATUS BAR */
+  .mob-status { height:36px; background:rgba(7,7,15,.7); display:flex; align-items:center; padding:0 16px; justify-content:space-between; flex-shrink:0; font-size:12px; font-family:'Fira Code',monospace; backdrop-filter:blur(10px); }
+  .mob-status-left { display:flex; align-items:center; gap:6px; }
+  .mob-status-right { display:flex; align-items:center; gap:8px; }
+  .mob-battery { width:22px; height:11px; border:1.5px solid var(--text2); border-radius:3px; position:relative; display:flex; align-items:center; padding:1px; }
+  .mob-battery::after { content:''; width:2px; height:5px; background:var(--text2); border-radius:0 1px 1px 0; position:absolute; right:-4px; }
+  .mob-battery-fill { height:100%; background:var(--green); border-radius:1px; width:70%; }
+
+  /* MOBILE HOME */
+  .mob-home { flex:1; display:flex; flex-direction:column; padding:16px; overflow:hidden; position:relative; }
+  .mob-time-widget { text-align:center; padding:24px 0 20px; }
+  .mob-time { font-size:52px; font-weight:800; line-height:1; letter-spacing:-2px; }
+  .mob-date { font-size:13px; color:var(--text2); margin-top:4px; }
+  .mob-apps { display:grid; grid-template-columns:repeat(4,1fr); gap:12px; margin-top:8px; }
+  .mob-app { aspect-ratio:1; border-radius:18px; display:flex; flex-direction:column; align-items:center; justify-content:center; cursor:pointer; position:relative; transition:.15s; }
+  .mob-app:active { transform:scale(.9); }
+  .mob-app-ico { font-size:28px; }
+  .mob-app-lbl { font-size:10px; color:var(--text); margin-top:3px; font-weight:500; }
+  .mob-dock { height:72px; background:rgba(255,255,255,.07); backdrop-filter:blur(20px); border-top:1px solid rgba(255,255,255,.08); display:flex; align-items:center; justify-content:space-around; padding:0 20px; flex-shrink:0; border-radius:0 0 0 0; }
+  .mob-dock-app { width:50px; height:50px; border-radius:16px; display:flex; align-items:center; justify-content:center; cursor:pointer; transition:.15s; font-size:26px; }
+  .mob-dock-app:active { transform:scale(.85); }
+  .mob-home-indicator { height:20px; display:flex; align-items:center; justify-content:center; flex-shrink:0; }
+  .mob-home-bar { width:120px; height:4px; border-radius:4px; background:rgba(255,255,255,.3); }
+
+  /* MOBILE NOTIFICATION */
+  .mob-notif { background:rgba(20,20,40,.9); border:1px solid var(--border); border-radius:16px; padding:12px 16px; margin-bottom:10px; backdrop-filter:blur(20px); display:flex; align-items:center; gap:10px; }
+  .mob-notif-ico { font-size:24px; }
+  .mob-notif-text { flex:1; }
+  .mob-notif-app { font-size:11px; color:var(--text2); margin-bottom:2px; }
+  .mob-notif-msg { font-size:13px; font-weight:500; }
+
+  /* MOBILE APP OVERLAY */
+  .mob-overlay { position:absolute; inset:0; background:var(--bg); z-index:10; display:flex; flex-direction:column; border-radius:0; }
+  .mob-overlay.hidden { display:none; }
+  .mob-overlay-bar { height:50px; background:rgba(7,7,15,.8); display:flex; align-items:center; padding:0 16px; gap:12px; border-bottom:1px solid var(--border); flex-shrink:0; }
+  .mob-back { font-size:20px; cursor:pointer; padding:4px; }
+  .mob-overlay-title { font-size:16px; font-weight:700; flex:1; }
+  .mob-overlay-body { flex:1; padding:16px; overflow:auto; }
+
+  /* NOTIFICATION DRAWER */
+  .mob-notif-drawer { position:absolute; top:0; left:0; right:0; background:rgba(10,10,20,.96); backdrop-filter:blur(20px); padding:40px 16px 20px; z-index:15; transform:translateY(-100%); transition:.35s cubic-bezier(.25,.8,.25,1); border-bottom:1px solid var(--border); }
+  .mob-notif-drawer.open { transform:translateY(0); }
+  .mob-notif-handle { width:40px; height:4px; background:rgba(255,255,255,.2); border-radius:4px; margin:0 auto 20px; }
+
+  /* UTIL */
+  .clearfix::after { content:''; display:table; clear:both; }
+  .mt8 { margin-top:8px; }
+  .mt16 { margin-top:16px; }
+  .fw7 { font-weight:700; }
+  .fc-purple { color:var(--purple2); }
+  .fc-cyan { color:var(--cyan2); }
+  .fc-text2 { color:var(--text2); }
+
+  /* ANIMATIONS */
+  @keyframes fadeSlideUp { from{opacity:0;transform:translateY(20px);} to{opacity:1;transform:translateY(0);} }
+  .anim-in { animation:fadeSlideUp .5s cubic-bezier(.25,.8,.25,1) both; }
+
+  /* SCROLLBAR */
+  ::-webkit-scrollbar { width:6px; height:6px; }
+  ::-webkit-scrollbar-track { background:transparent; }
+  ::-webkit-scrollbar-thumb { background:var(--text3); border-radius:4px; }
+  ::-webkit-scrollbar-thumb:hover { background:var(--purple); }
+
+  /* NOTIFICATION BADGE */
+  .badge { position:absolute; top:-4px; right:-4px; min-width:16px; height:16px; background:var(--red); border-radius:8px; font-size:10px; font-weight:700; color:#fff; display:flex; align-items:center; justify-content:center; padding:0 3px; }
+
+  /* Responsive tweak */
+  @media(max-width:400px) {
+    .inst-shell { padding:24px 20px; }
+    .det-bubble { padding:24px 20px; }
+    .theme-grid { grid-template-columns:repeat(3,1fr); }
+  }
+</style>
+</head>
+<body>
+
+<canvas id="starsCanvas"></canvas>
+
+<!-- ① SPLASH -->
+<div class="screen" id="splash">
+  <div class="logo-orbit">
+    <div class="logo-ring"></div>
+    <div class="logo-ring2"></div>
+    <div class="logo-center">YO</div>
+  </div>
+  <div class="yo-tagline">операционная система</div>
+  <div class="yo-name" id="splashName">YOOS</div>
+  <div class="yo-sub">Виртуальный установщик</div>
+  <div class="splash-dots">
+    <div class="splash-dot"></div>
+    <div class="splash-dot"></div>
+    <div class="splash-dot"></div>
+  </div>
+</div>
+
+<!-- ② DEVICE DETECT -->
+<div class="screen hidden" id="deviceDetect">
+  <div class="det-bubble anim-in">
+    <div class="det-avatar" id="detAvatar">🤖</div>
+    <div class="det-title">Привет! Я YO-Ассистент</div>
+    <div class="det-msg" id="detMsg">Я определил ваше устройство. Хотите изменить выбор?</div>
+    <div class="det-btns">
+      <button class="btn-det" id="btnPhone" onclick="selectDevice('phone')">📱 Телефон</button>
+      <button class="btn-det" id="btnPC" onclick="selectDevice('pc')">💻 ПК</button>
+    </div>
+    <button class="btn-confirm" onclick="goToWarnings()">Продолжить →</button>
+  </div>
+</div>
+
+<!-- ③ WARNINGS -->
+<div class="screen hidden" id="warnings">
+  <div class="warn-box anim-in" id="warnBox">
+    <div class="warn-counter" id="warnCounter">ПРЕДУПРЕЖДЕНИЕ 1 ИЗ 5</div>
+    <div class="warn-progress"><div class="warn-progress-bar" id="warnBar" style="width:20%"></div></div>
+    <div class="warn-icon" id="warnIcon">⚠️</div>
+    <div class="warn-title" id="warnTitle"></div>
+    <div class="warn-text" id="warnText"></div>
+    <div class="warn-reassure hidden" id="warnReassure">
+      😊 <strong>Не переживайте!</strong> Это всего лишь симулятор. Ничего на самом деле устанавливаться не будет. Никакой угрозы для вашего устройства нет — мы просто хотим, чтобы впечатление было реалистичным!
+    </div>
+    <div class="clearfix">
+      <button class="btn-warn" id="btnWarnNext" onclick="nextWarning()">Понял, продолжить →</button>
+    </div>
+  </div>
+</div>
+
+<!-- ④ INSTALLER -->
+<div class="screen hidden" id="installer">
+  <div class="inst-shell anim-in">
+    <div style="text-align:center;margin-bottom:20px;">
+      <div style="font-size:13px;color:var(--text2);font-family:'Fira Code',monospace;letter-spacing:2px;" id="instOsLabel">УСТАНОВКА YOOS</div>
+    </div>
+    <div class="inst-step-bar" id="instSteps">
+      <div class="inst-step active" data-n="1">Имя</div>
+      <div class="inst-step" data-n="2">Язык</div>
+      <div class="inst-step" data-n="3">Тема</div>
+      <div class="inst-step" data-n="4">Wi-Fi</div>
+    </div>
+    <!-- STEP 1: Name -->
+    <div class="inst-panel active" id="instStep1">
+      <div class="inst-h">Как вас зовут? 👤</div>
+      <div class="inst-sub">Введите имя пользователя для системы</div>
+      <div class="inst-field">
+        <label>ИМЯ ПОЛЬЗОВАТЕЛЯ</label>
+        <input type="text" id="inputUsername" placeholder="Например: Эксок" maxlength="20" oninput="checkStep1()">
+      </div>
+      <button class="btn-next" id="btnStep1" disabled onclick="nextInstStep(2)">Далее →</button>
+    </div>
+    <!-- STEP 2: Language -->
+    <div class="inst-panel" id="instStep2">
+      <div class="inst-h">Язык системы 🌐</div>
+      <div class="inst-sub">Выберите язык интерфейса</div>
+      <div class="inst-field">
+        <label>ЯЗЫК</label>
+        <select id="selectLang">
+          <option value="ru">🇷🇺 Русский</option>
+          <option value="en">🇬🇧 English</option>
+          <option value="az">🇦🇿 Azərbaycan</option>
+          <option value="tr">🇹🇷 Türkçe</option>
+          <option value="de">🇩🇪 Deutsch</option>
+          <option value="fr">🇫🇷 Français</option>
+          <option value="zh">🇨🇳 中文</option>
+          <option value="ja">🇯🇵 日本語</option>
+        </select>
+      </div>
+      <button class="btn-next" onclick="nextInstStep(3)">Далее →</button>
+    </div>
+    <!-- STEP 3: Theme -->
+    <div class="inst-panel" id="instStep3">
+      <div class="inst-h">Тема оформления 🎨</div>
+      <div class="inst-sub">Выберите визуальный стиль системы</div>
+      <div class="theme-grid" id="themeGrid">
+        <div class="theme-card selected" data-theme="cosmic" onclick="selectTheme(this)" style="background:linear-gradient(135deg,#1a0a35,#0a1a2e);"><span>🌌</span><div style="font-size:9px;margin-top:4px;color:#9999cc">Космос</div></div>
+        <div class="theme-card" data-theme="forest" onclick="selectTheme(this)" style="background:linear-gradient(135deg,#0a2010,#051808);"><span>🌿</span><div style="font-size:9px;margin-top:4px;color:#9999cc">Лес</div></div>
+        <div class="theme-card" data-theme="ocean" onclick="selectTheme(this)" style="background:linear-gradient(135deg,#0a1520,#051530);"><span>🌊</span><div style="font-size:9px;margin-top:4px;color:#9999cc">Океан</div></div>
+        <div class="theme-card" data-theme="fire" onclick="selectTheme(this)" style="background:linear-gradient(135deg,#2a0a00,#1a1000);"><span>🔥</span><div style="font-size:9px;margin-top:4px;color:#9999cc">Огонь</div></div>
+        <div class="theme-card" data-theme="neon" onclick="selectTheme(this)" style="background:linear-gradient(135deg,#001a10,#00100a);"><span>⚡</span><div style="font-size:9px;margin-top:4px;color:#9999cc">Неон</div></div>
+        <div class="theme-card" data-theme="candy" onclick="selectTheme(this)" style="background:linear-gradient(135deg,#2a0020,#1a0030);"><span>🍬</span><div style="font-size:9px;margin-top:4px;color:#9999cc">Конфетти</div></div>
+        <div class="theme-card" data-theme="ice" onclick="selectTheme(this)" style="background:linear-gradient(135deg,#0a1525,#050f1a);"><span>❄️</span><div style="font-size:9px;margin-top:4px;color:#9999cc">Лёд</div></div>
+        <div class="theme-card" data-theme="golden" onclick="selectTheme(this)" style="background:linear-gradient(135deg,#1a1200,#0f0a00);"><span>✨</span><div style="font-size:9px;margin-top:4px;color:#9999cc">Золото</div></div>
+      </div>
+      <button class="btn-next" onclick="nextInstStep(4)">Далее →</button>
+    </div>
+    <!-- STEP 4: WiFi -->
+    <div class="inst-panel" id="instStep4">
+      <div class="inst-h">Подключение к Wi-Fi 📶</div>
+      <div class="inst-sub">Выберите сеть из найденных</div>
+      <div class="wifi-list" id="wifiList"></div>
+      <button class="btn-next" id="btnStep4" disabled onclick="startInstalling()">Установить систему →</button>
+    </div>
+  </div>
+</div>
+
+<!-- ⑤ INSTALLING ANIMATION -->
+<div class="screen hidden" id="installing">
+  <div class="inst-anim">
+    <div class="inst-ring-wrap">
+      <svg class="inst-ring-svg" viewBox="0 0 100 100">
+        <circle cx="50" cy="50" r="45" fill="none" stroke="rgba(124,58,237,.2)" stroke-width="3"/>
+        <circle cx="50" cy="50" r="45" fill="none" stroke="url(#igr)" stroke-width="3" stroke-dasharray="70 212" stroke-linecap="round"/>
+        <defs><linearGradient id="igr" x1="0%" y1="0%" x2="100%" y2="0%"><stop offset="0%" stop-color="#7c3aed"/><stop offset="100%" stop-color="#06b6d4"/></linearGradient></defs>
+      </svg>
+      <div class="inst-ring-inner" id="instEmoji">⚙️</div>
+    </div>
+    <div class="inst-pct" id="instPct">0%</div>
+    <div style="font-size:14px;color:var(--text2);margin:8px 0 16px;" id="instStage">Инициализация...</div>
+    <div class="inst-progress-wrap"><div class="inst-progress-fill" id="instFill"></div></div>
+    <div class="inst-log" id="instLog">▶ Запуск установщика...</div>
+  </div>
+</div>
+
+<!-- ⑥ BOOT -->
+<div class="screen hidden" id="boot">
+  <div class="boot-logo" id="bootLogo">YOOS</div>
+  <div class="boot-tagline">by YO Systems</div>
+  <div class="boot-bar-wrap"><div class="boot-bar" id="bootBar"></div></div>
+</div>
+
+<!-- ⑦ WELCOME TOUR -->
+<div class="screen hidden" id="welcome">
+  <div class="welcome-card anim-in" id="welcomeCard">
+    <span class="welcome-emoji" id="welcomeEmoji">🎉</span>
+    <div class="welcome-h" id="welcomeH"><span class="grad">Добро пожаловать!</span></div>
+    <div class="welcome-p" id="welcomeP"></div>
+    <div class="tour-dots" id="tourDots"></div>
+    <button class="btn-tour" id="btnTour" onclick="nextTour()">Далее →</button>
+  </div>
+</div>
+
+<!-- ⑧ DESKTOP PC -->
+<div id="desktopPC">
+  <div class="pc-desktop" id="pcDesktop">
+    <!-- Icons -->
+    <div class="pc-icons" id="pcIcons"></div>
+    <!-- Windows -->
+    <div class="pc-window hidden" id="winAbout" style="left:60px;top:40px;width:340px;height:280px;">
+      <div class="pc-win-title" onmousedown="dragWin(event,'winAbout')">
+        <div class="pc-win-btns">
+          <div class="pc-win-btn close" onclick="closeWin('winAbout')"></div>
+          <div class="pc-win-btn min"></div>
+          <div class="pc-win-btn max"></div>
+        </div>
+        <div class="pc-win-label">ℹ️ О системе</div>
+      </div>
+      <div class="pc-win-body about-content">
+        <span class="about-badge">YO Systems™ 2025</span>
+        <h2 id="aboutTitle">YOQOS 1.0</h2>
+        <p>Пользователь: <strong id="aboutUser">—</strong></p>
+        <p>Версия ядра: <span class="fc-cyan">YO-Kernel 6.1.4</span></p>
+        <p>Архитектура: <span class="fc-purple">x86_64 / ARM64</span></p>
+        <p>Память: <span class="fc-cyan">симулировано</span></p>
+        <p style="margin-top:12px;font-size:12px;">YOQOS — операционная система нового поколения. Быстрая, красивая и умная.</p>
+      </div>
+    </div>
+    <div class="pc-window hidden" id="winTerminal" style="left:100px;top:80px;width:420px;height:260px;">
+      <div class="pc-win-title" onmousedown="dragWin(event,'winTerminal')">
+        <div class="pc-win-btns">
+          <div class="pc-win-btn close" onclick="closeWin('winTerminal')"></div>
+          <div class="pc-win-btn min"></div>
+          <div class="pc-win-btn max"></div>
+        </div>
+        <div class="pc-win-label">⚡ Терминал</div>
+      </div>
+      <div class="pc-win-body terminal-body" id="terminalBody">
+        <div><span class="term-prompt">yoos@</span><span id="termUser">user</span><span class="term-prompt">:~$</span> <span class="term-cmd">uname -a</span></div>
+        <div>YO-Kernel 6.1.4 #1 SMP YO Systems™</div>
+        <div style="margin-top:8px;"><span class="term-prompt">yoos@</span><span id="termUser2">user</span><span class="term-prompt">:~$</span> <span class="term-cmd">ls /home</span></div>
+        <div>Документы  Музыка  Видео  Загрузки  Рабочий стол</div>
+        <div style="margin-top:8px;"><span class="term-prompt">yoos@</span><span id="termUser3">user</span><span class="term-prompt">:~$</span> <span id="termCursor" style="animation:dotPulse 1s infinite">_</span></div>
+      </div>
+    </div>
+    <div class="pc-window hidden" id="winFiles" style="left:140px;top:60px;width:380px;height:300px;">
+      <div class="pc-win-title" onmousedown="dragWin(event,'winFiles')">
+        <div class="pc-win-btns">
+          <div class="pc-win-btn close" onclick="closeWin('winFiles')"></div>
+          <div class="pc-win-btn min"></div>
+          <div class="pc-win-btn max"></div>
+        </div>
+        <div class="pc-win-label">📁 Файловый менеджер</div>
+      </div>
+      <div class="pc-win-body">
+        <div class="files-grid">
+          <div class="file-item"><div>📄</div><div>Readme.txt</div></div>
+          <div class="file-item"><div>🎵</div><div>Музыка</div></div>
+          <div class="file-item"><div>🎬</div><div>Видео</div></div>
+          <div class="file-item"><div>📸</div><div>Фото</div></div>
+          <div class="file-item"><div>📦</div><div>Загрузки</div></div>
+          <div class="file-item"><div>🔧</div><div>Система</div></div>
+          <div class="file-item"><div>⚙️</div><div>Config</div></div>
+          <div class="file-item"><div>🗑️</div><div>Корзина</div></div>
+        </div>
+      </div>
+    </div>
+    <!-- Start menu -->
+    <div class="pc-start-menu" id="startMenu">
+      <div class="sm-user">
+        <div class="sm-avatar" id="smAvatar">U</div>
+        <div>
+          <div class="sm-name" id="smName">Пользователь</div>
+          <div class="sm-os" id="smOs">YOQOS 1.0</div>
+        </div>
+      </div>
+      <div class="sm-apps">
+        <div class="sm-app" onclick="openWin('winAbout');toggleStart()"><div class="sm-app-ico">ℹ️</div>О системе</div>
+        <div class="sm-app" onclick="openWin('winTerminal');toggleStart()"><div class="sm-app-ico">⚡</div>Терминал</div>
+        <div class="sm-app" onclick="openWin('winFiles');toggleStart()"><div class="sm-app-ico">📁</div>Файлы</div>
+        <div class="sm-app" onclick="toggleStart()"><div class="sm-app-ico">⚙️</div>Настройки</div>
+        <div class="sm-app" onclick="toggleStart()"><div class="sm-app-ico">🌐</div>Браузер</div>
+        <div class="sm-app" onclick="toggleStart()"><div class="sm-app-ico">🎵</div>Музыка</div>
+      </div>
+      <button class="sm-power" onclick="reboot()">⏻ Выключить</button>
+    </div>
+  </div>
+  <div class="pc-taskbar">
+    <div class="pc-start" onclick="toggleStart()">YO</div>
+    <div class="pc-tasks" id="pcTasks">
+      <div class="pc-task-btn active">🖥️ Рабочий стол</div>
+    </div>
+    <div class="pc-tray">
+      <div class="pc-tray-icon">📶</div>
+      <div class="pc-tray-icon">🔊</div>
+      <div class="pc-tray-icon">🔋</div>
+      <div id="pcClock" style="min-width:44px;text-align:right;">--:--</div>
+    </div>
+  </div>
+</div>
+
+<!-- ⑨ DESKTOP MOBILE -->
+<div id="desktopMobile">
+  <div class="mob-status">
+    <div class="mob-status-left">
+      <span id="mobTime">12:00</span>
+    </div>
+    <div class="mob-status-right">
+      <span>📶</span>
+      <div class="mob-battery"><div class="mob-battery-fill"></div></div>
+    </div>
+  </div>
+  <div class="mob-home" id="mobHome">
+    <div class="mob-time-widget">
+      <div class="mob-time" id="mobTimeBig">12:00</div>
+      <div class="mob-date" id="mobDateStr">Вторник, 9 июня</div>
+    </div>
+    <!-- Notifications -->
+    <div id="mobNotifs">
+      <div class="mob-notif">
+        <div class="mob-notif-ico">🎉</div>
+        <div class="mob-notif-text">
+          <div class="mob-notif-app">YOOS · Сейчас</div>
+          <div class="mob-notif-msg" id="mobWelcomeNotif">Добро пожаловать!</div>
+        </div>
+      </div>
+      <div class="mob-notif">
+        <div class="mob-notif-ico">📶</div>
+        <div class="mob-notif-text">
+          <div class="mob-notif-app">Wi-Fi · Только что</div>
+          <div class="mob-notif-msg" id="mobWifiNotif">Подключено к сети</div>
+        </div>
+      </div>
+    </div>
+    <!-- App grid -->
+    <div class="mob-apps" id="mobApps"></div>
+  </div>
+  <!-- Notification drawer -->
+  <div class="mob-notif-drawer" id="notifDrawer">
+    <div class="mob-notif-handle"></div>
+    <div style="font-size:14px;font-weight:700;margin-bottom:12px;">🔔 Уведомления</div>
+    <div class="mob-notif"><div class="mob-notif-ico">⚙️</div><div class="mob-notif-text"><div class="mob-notif-app">Система</div><div class="mob-notif-msg">YOOS успешно установлена</div></div></div>
+    <div class="mob-notif"><div class="mob-notif-ico">🔒</div><div class="mob-notif-text"><div class="mob-notif-app">Безопасность</div><div class="mob-notif-msg">Защита устройства активна</div></div></div>
+    <button style="width:100%;margin-top:12px;padding:10px;border-radius:10px;border:1px solid var(--border);background:rgba(255,255,255,.05);color:var(--text2);font-size:13px;cursor:pointer;" onclick="closeNotifDrawer()">Закрыть</button>
+  </div>
+  <!-- App Overlay -->
+  <div class="mob-overlay hidden" id="mobOverlay">
+    <div class="mob-overlay-bar">
+      <div class="mob-back" onclick="closeMobApp()">←</div>
+      <div class="mob-overlay-title" id="mobOverlayTitle">Приложение</div>
+    </div>
+    <div class="mob-overlay-body" id="mobOverlayBody"></div>
+  </div>
+  <div class="mob-dock" id="mobDock">
+    <div class="mob-dock-app" onclick="openMobApp('phone')">📞</div>
+    <div class="mob-dock-app" onclick="openMobApp('browser')">🌐</div>
+    <div class="mob-dock-app" onclick="openMobApp('camera')">📷</div>
+    <div class="mob-dock-app" onclick="openMobApp('settings')">⚙️</div>
+  </div>
+  <div class="mob-home-indicator"><div class="mob-home-bar"></div></div>
+</div>
+
+<script>
+// ─── STATE ───────────────────────────────────────────────────
+let device = 'pc'; // 'pc' | 'phone'
+let installData = { username:'', lang:'ru', theme:'cosmic', wifi:'' };
+let warnIdx = 0;
+let instStep = 1;
+let tourIdx = 0;
+let startMenuOpen = false;
+
+const WIFI_NETWORKS = [
+  { name:'YO-Network-5G', lock:true, bars:4 },
+  { name:'Home_WiFi_2.4', lock:true, bars:3 },
+  { name:'Keysight_Corp', lock:true, bars:2 },
+  { name:'FREE_YOOS_WIFI', lock:false, bars:4 },
+  { name:'TP-Link_4A7B', lock:true, bars:1 },
+];
+
+const WARNINGS = [
+  { icon:'⚠️', title:'Устройство может превратиться в кирпич!', text:'Внимание! Установка нестандартных операционных систем может необратимо повредить прошивку устройства. В некоторых случаях устройство перестаёт включаться и не подлежит восстановлению — что среди техников называется «окирпичить». Продолжая, вы берёте все риски на себя.' },
+  { icon:'💀', title:'Вы потеряете ВСЕ данные!', text:'Установка YOOS/YOQOS полностью перезаписывает текущую операционную систему. Все ваши фотографии, контакты, приложения, документы, сохранения игр и личные файлы будут безвозвратно уничтожены. Создайте резервную копию прямо сейчас!' },
+  { icon:'⚖️', title:'Мы не несём ответственности за устройство!', text:'YO Systems не несёт никакой юридической или финансовой ответственности за любой возможный ущерб, нанесённый вашему устройству в результате установки системы. Гарантийное обслуживание производителя также будет аннулировано.' },
+  { icon:'🔓', title:'Безопасность устройства под угрозой!', text:'Установка сторонних ОС открывает системные разделы, что может сделать ваше устройство уязвимым для вредоносного программного обеспечения. Банковские приложения, VPN и корпоративные профили могут перестать функционировать или быть скомпрометированы.' },
+  { icon:'⚡', title:'Последнее предупреждение!', text:'Это ваш последний шанс остановиться. Нажимая «Понял, продолжить», вы подтверждаете, что прочитали все предупреждения, осознаёте все риски и берёте на себя полную ответственность. YO Systems снимает с себя любые обязательства.', isLast:true },
+];
+
+const TOUR_STEPS_PC = [
+  { emoji:'🎉', h:'Добро пожаловать в YOQOS!', p:'Ваша новая операционная система успешно установлена. Сейчас мы кратко покажем вам основные возможности системы.' },
+  { emoji:'🖥️', h:'Рабочий стол', p:'Здесь расположены ярлыки программ. Дважды кликайте по иконкам для открытия приложений. Фон меняется в зависимости от выбранной темы.' },
+  { emoji:'🚀', h:'Меню «Пуск»', p:'Нажмите кнопку YO в левом нижнем углу для открытия меню. Там вы найдёте все установленные приложения и настройки системы.' },
+  { emoji:'⚡', h:'Терминал', p:'Для продвинутых пользователей — полноценный терминал с YO-Shell. Работает на базе YO-Kernel 6.1.4 для максимальной производительности.' },
+  { emoji:'✅', h:'Всё готово!', p:'Вы готовы к работе. Наслаждайтесь YOQOS — самой быстрой и красивой операционной системой от YO Systems!' },
+];
+
+const TOUR_STEPS_MOB = [
+  { emoji:'🎉', h:'Добро пожаловать в YOOS!', p:'Ваша мобильная система установлена. Сейчас мы покажем как пользоваться интерфейсом.' },
+  { emoji:'📱', h:'Главный экран', p:'Свайпайте влево для перехода между экранами. Виджет времени всегда показывает актуальное время.' },
+  { emoji:'🔔', h:'Уведомления', p:'Потяните сверху вниз чтобы открыть шторку уведомлений со всеми оповещениями системы.' },
+  { emoji:'⚡', h:'Быстрый запуск', p:'В доке внизу расположены основные приложения: Телефон, Браузер, Камера и Настройки.' },
+  { emoji:'✅', h:'Готово!', p:'Добро пожаловать в YOOS — самую удобную мобильную ОС от YO Systems. Наслаждайтесь!' },
+];
+
+// ─── STARS ───────────────────────────────────────────────────
+(function() {
+  const c = document.getElementById('starsCanvas');
+  const ctx = c.getContext('2d');
+  let W, H, stars = [];
+  function resize() { W=c.width=window.innerWidth; H=c.height=window.innerHeight; }
+  function init() {
+    stars = [];
+    for (let i=0; i<160; i++) stars.push({ x:Math.random()*W, y:Math.random()*H, r:Math.random()*1.4+.2, a:Math.random(), da:(Math.random()-.5)*.006 });
+  }
+  function draw() {
+    ctx.clearRect(0,0,W,H);
+    stars.forEach(s=>{ s.a+=s.da; if(s.a<0||s.a>1)s.da*=-1; ctx.beginPath(); ctx.arc(s.x,s.y,s.r,0,Math.PI*2); ctx.fillStyle=`rgba(200,200,255,${s.a*.7})`; ctx.fill(); });
+    requestAnimationFrame(draw);
+  }
+  resize(); init(); draw();
+  window.addEventListener('resize', ()=>{ resize(); init(); });
+})();
+
+// ─── SCREEN TRANSITIONS ──────────────────────────────────────
+function showScreen(id) {
+  document.querySelectorAll('.screen').forEach(s=>s.classList.add('hidden'));
+  const el = document.getElementById(id);
+  el.classList.remove('hidden');
+}
+
+function hideAllDesktops() {
+  document.getElementById('desktopPC').classList.remove('visible');
+  document.getElementById('desktopMobile').classList.remove('visible');
+}
+
+// ─── SPLASH ──────────────────────────────────────────────────
+function detectDevice() {
+  const ua = navigator.userAgent;
+  device = /Android|iPhone|iPad|iPod|Mobile/i.test(ua) ? 'phone' : 'pc';
+}
+
+window.onload = function() {
+  detectDevice();
+  setTimeout(()=>{ showScreen('deviceDetect'); applyDetection(); }, 2800);
+};
+
+function applyDetection() {
+  const splashName = document.getElementById('splashName');
+  document.getElementById('btnPhone').classList.toggle('active', device==='phone');
+  document.getElementById('btnPC').classList.toggle('active', device==='pc');
+  document.getElementById('detMsg').textContent = device === 'phone'
+    ? '🤖 Я определил: вы используете смартфон. Буду устанавливать YOOS для мобильных устройств. Хотите изменить?'
+    : '🤖 Я определил: вы используете компьютер. Буду устанавливать YOQOS для ПК. Хотите изменить?';
+  if (splashName) splashName.textContent = device === 'phone' ? 'YOOS' : 'YOQOS';
+}
+
+function selectDevice(d) {
+  device = d;
+  document.getElementById('btnPhone').classList.toggle('active', d==='phone');
+  document.getElementById('btnPC').classList.toggle('active', d==='pc');
+  document.getElementById('detMsg').textContent = d === 'phone'
+    ? '📱 Выбран режим: Смартфон → YOOS'
+    : '💻 Выбран режим: ПК → YOQOS';
+}
+
+// ─── WARNINGS ────────────────────────────────────────────────
+function goToWarnings() {
+  warnIdx = 0;
+  showScreen('warnings');
+  renderWarning();
+}
+
+function renderWarning() {
+  const w = WARNINGS[warnIdx];
+  document.getElementById('warnCounter').textContent = `ПРЕДУПРЕЖДЕНИЕ ${warnIdx+1} ИЗ 5`;
+  document.getElementById('warnBar').style.width = ((warnIdx+1)/5*100)+'%';
+  document.getElementById('warnIcon').textContent = w.icon;
+  document.getElementById('warnTitle').textContent = w.title;
+  document.getElementById('warnText').textContent = w.text;
+  const reassure = document.getElementById('warnReassure');
+  const btn = document.getElementById('btnWarnNext');
+  if (w.isLast) {
+    reassure.classList.remove('hidden');
+    btn.textContent = 'OK, начать установку!';
+  } else {
+    reassure.classList.add('hidden');
+    btn.textContent = 'Понял, продолжить →';
+  }
+}
+
+function nextWarning() {
+  if (warnIdx < WARNINGS.length-1) { warnIdx++; renderWarning(); }
+  else goToInstaller();
+}
+
+// ─── INSTALLER ───────────────────────────────────────────────
+function goToInstaller() {
+  document.getElementById('instOsLabel').textContent = `УСТАНОВКА ${device==='phone'?'YOOS':'YOQOS'}`;
+  buildWifiList();
+  showScreen('installer');
+}
+
+function checkStep1() {
+  const val = document.getElementById('inputUsername').value.trim();
+  document.getElementById('btnStep1').disabled = val.length < 1;
+}
+
+function nextInstStep(n) {
+  if (n===2) installData.username = document.getElementById('inputUsername').value.trim();
+  if (n===3) installData.lang = document.getElementById('selectLang').value;
+  document.querySelectorAll('.inst-step').forEach((s,i)=>{ s.classList.remove('active','done'); if(i+1<n)s.classList.add('done'); else if(i+1===n)s.classList.add('active'); });
+  document.querySelectorAll('.inst-panel').forEach(p=>p.classList.remove('active'));
+  document.getElementById('instStep'+n).classList.add('active');
+  instStep = n;
+}
+
+function selectTheme(el) {
+  document.querySelectorAll('.theme-card').forEach(c=>c.classList.remove('selected'));
+  el.classList.add('selected');
+  installData.theme = el.dataset.theme;
+}
+
+function buildWifiList() {
+  const list = document.getElementById('wifiList');
+  list.innerHTML = '';
+  WIFI_NETWORKS.forEach((n,i)=>{
+    const div = document.createElement('div');
+    div.className='wifi-item';
+    div.innerHTML=`<div class="wifi-bars">${'<span></span>'.repeat(n.bars)}${'<span style="opacity:.2"></span>'.repeat(4-n.bars)}</div><div class="wifi-name">${n.name}</div><div class="wifi-lock">${n.lock?'🔒':''}</div>`;
+    div.onclick=()=>{ document.querySelectorAll('.wifi-item').forEach(x=>x.classList.remove('selected')); div.classList.add('selected'); installData.wifi=n.name; document.getElementById('btnStep4').disabled=false; };
+    list.appendChild(div);
+  });
+}
+
+// ─── INSTALL ANIMATION ───────────────────────────────────────
+const INSTALL_STAGES = [
+  { pct:5, msg:'▶ Проверка совместимости...', emoji:'🔍' },
+  { pct:12, msg:'▶ Разметка файловой системы...', emoji:'💾' },
+  { pct:22, msg:'▶ Установка YO-Kernel 6.1.4...', emoji:'⚙️' },
+  { pct:35, msg:'▶ Копирование системных файлов...', emoji:'📋' },
+  { pct:47, msg:'▶ Настройка загрузчика...', emoji:'🚀' },
+  { pct:58, msg:'▶ Установка драйверов...', emoji:'🔧' },
+  { pct:68, msg:'▶ Применение темы оформления...', emoji:'🎨' },
+  { pct:76, msg:'▶ Настройка сети Wi-Fi...', emoji:'📶' },
+  { pct:85, msg:'▶ Финальная настройка системы...', emoji:'✨' },
+  { pct:93, msg:'▶ Создание профиля пользователя...', emoji:'👤' },
+  { pct:100, msg:'✅ Установка завершена!', emoji:'🎉' },
+];
+
+function startInstalling() {
+  showScreen('installing');
+  let si = 0;
+  const run = ()=>{
+    if (si >= INSTALL_STAGES.length) { setTimeout(goBoot, 800); return; }
+    const s = INSTALL_STAGES[si++];
+    document.getElementById('instPct').textContent = s.pct+'%';
+    document.getElementById('instStage').textContent = s.msg.replace('▶ ','').replace('✅ ','');
+    document.getElementById('instFill').style.width = s.pct+'%';
+    document.getElementById('instLog').textContent = s.msg;
+    document.getElementById('instEmoji').textContent = s.emoji;
+    setTimeout(run, 450 + Math.random()*350);
+  };
+  run();
+}
+
+// ─── BOOT ─────────────────────────────────────────────────────
+function goBoot() {
+  document.getElementById('bootLogo').textContent = device==='phone'?'YOOS':'YOQOS';
+  showScreen('boot');
+  const bar = document.getElementById('bootBar');
+  let p = 0;
+  const t = setInterval(()=>{ p += 2+Math.random()*4; if(p>=100){p=100;bar.style.width='100%';clearInterval(t);setTimeout(goWelcome,500);} else bar.style.width=p+'%'; }, 80);
+}
+
+// ─── WELCOME TOUR ─────────────────────────────────────────────
+function goWelcome() {
+  tourIdx = 0;
+  const steps = device==='phone' ? TOUR_STEPS_MOB : TOUR_STEPS_PC;
+  // build dots
+  const dots = document.getElementById('tourDots');
+  dots.innerHTML = steps.map((_,i)=>`<div class="tour-dot${i===0?' active':''}"></div>`).join('');
+  renderTour();
+  showScreen('welcome');
+}
+
+function renderTour() {
+  const steps = device==='phone' ? TOUR_STEPS_MOB : TOUR_STEPS_PC;
+  const s = steps[tourIdx];
+  document.getElementById('welcomeEmoji').textContent = s.emoji;
+  document.getElementById('welcomeH').innerHTML = `<span class="grad">${s.h}</span>`;
+  document.getElementById('welcomeP').textContent = s.p;
+  document.querySelectorAll('.tour-dot').forEach((d,i)=>d.classList.toggle('active',i===tourIdx));
+  const isLast = tourIdx >= steps.length-1;
+  document.getElementById('btnTour').textContent = isLast ? '🚀 Начать работу!' : 'Далее →';
+}
+
+function nextTour() {
+  const steps = device==='phone' ? TOUR_STEPS_MOB : TOUR_STEPS_PC;
+  if (tourIdx < steps.length-1) { tourIdx++; renderTour(); }
+  else launchDesktop();
+}
+
+// ─── LAUNCH DESKTOP ───────────────────────────────────────────
+function launchDesktop() {
+  document.getElementById('welcome').classList.add('hidden');
+  hideAllDesktops();
+  if (device === 'phone') launchMobile(); else launchPC();
+}
+
+// ─── PC DESKTOP ───────────────────────────────────────────────
+const PC_ICONS = [
+  { ico:'ℹ️', lbl:'О системе', action:()=>openWin('winAbout') },
+  { ico:'📁', lbl:'Файлы', action:()=>openWin('winFiles') },
+  { ico:'⚡', lbl:'Терминал', action:()=>openWin('winTerminal') },
+  { ico:'🌐', lbl:'Браузер', action:null },
+  { ico:'⚙️', lbl:'Настройки', action:null },
+  { ico:'🎵', lbl:'Музыка', action:null },
+  { ico:'🎬', lbl:'Видео', action:null },
+  { ico:'📸', lbl:'Фото', action:null },
+  { ico:'🗒️', lbl:'Заметки', action:null },
+  { ico:'🧮', lbl:'Калькулятор', action:null },
+];
+
+function launchPC() {
+  // Populate info
+  const u = installData.username || 'Пользователь';
+  document.getElementById('aboutTitle').textContent = 'YOQOS 1.0';
+  document.getElementById('aboutUser').textContent = u;
+  ['termUser','termUser2','termUser3'].forEach(id=>{ const el=document.getElementById(id); if(el)el.textContent=u.toLowerCase(); });
+  document.getElementById('smName').textContent = u;
+  document.getElementById('smOs').textContent = 'YOQOS 1.0';
+  document.getElementById('smAvatar').textContent = u[0].toUpperCase();
+
+  // Icons
+  const container = document.getElementById('pcIcons');
+  container.innerHTML = '';
+  PC_ICONS.forEach(ic=>{
+    const d = document.createElement('div');
+    d.className = 'pc-icon';
+    d.innerHTML = `<div class="pc-icon-img">${ic.ico}</div><div class="pc-icon-label">${ic.lbl}</div>`;
+    d.ondblclick = ic.action || (()=>{});
+    container.appendChild(d);
+  });
+
+  updateClock();
+  setInterval(updateClock, 1000);
+  document.getElementById('desktopPC').classList.add('visible');
+}
+
+function updateClock() {
+  const now = new Date();
+  const t = now.getHours().toString().padStart(2,'0')+':'+now.getMinutes().toString().padStart(2,'0');
+  const el = document.getElementById('pcClock'); if(el) el.textContent = t;
+  const el2 = document.getElementById('mobTime'); if(el2) el2.textContent = t;
+  const el3 = document.getElementById('mobTimeBig'); if(el3) el3.textContent = t;
+}
+
+function openWin(id) {
+  document.getElementById(id).classList.remove('hidden');
+  // bring to front
+  const z = 22 + document.querySelectorAll('.pc-window:not(.hidden)').length;
+  document.getElementById(id).style.zIndex = z;
+  updateTaskbar();
+}
+function closeWin(id) { document.getElementById(id).classList.add('hidden'); updateTaskbar(); }
+function updateTaskbar() {}
+
+function toggleStart() {
+  startMenuOpen = !startMenuOpen;
+  document.getElementById('startMenu').classList.toggle('open', startMenuOpen);
+}
+
+document.addEventListener('click', e=>{
+  const menu = document.getElementById('startMenu');
+  const btn = document.querySelector('.pc-start');
+  if (menu && startMenuOpen && !menu.contains(e.target) && btn && !btn.contains(e.target)) {
+    startMenuOpen = false;
+    menu.classList.remove('open');
+  }
+});
+
+// Window drag
+let dragState = null;
+function dragWin(e, id) {
+  const win = document.getElementById(id);
+  const rect = win.getBoundingClientRect();
+  dragState = { id, ox: e.clientX - rect.left, oy: e.clientY - rect.top };
+  document.onmousemove = ev=>{
+    if(!dragState)return;
+    const w=document.getElementById(dragState.id);
+    w.style.left=(ev.clientX-dragState.ox)+'px';
+    w.style.top=(ev.clientY-dragState.oy)+'px';
+  };
+  document.onmouseup = ()=>{ dragState=null; document.onmousemove=null; document.onmouseup=null; };
+}
+
+// ─── MOBILE DESKTOP ───────────────────────────────────────────
+const MOB_APPS = [
+  { ico:'📷', lbl:'Камера', id:'camera' },
+  { ico:'🌐', lbl:'Браузер', id:'browser' },
+  { ico:'📧', lbl:'Почта', id:'mail' },
+  { ico:'🎵', lbl:'Музыка', id:'music' },
+  { ico:'🗺️', lbl:'Карты', id:'maps' },
+  { ico:'⚙️', lbl:'Настройки', id:'settings' },
+  { ico:'🧮', lbl:'Калькулятор', id:'calc' },
+  { ico:'🗒️', lbl:'Заметки', id:'notes' },
+  { ico:'🎬', lbl:'Видео', id:'video' },
+  { ico:'📦', lbl:'Магазин', id:'store' },
+  { ico:'ℹ️', lbl:'О системе', id:'about' },
+  { ico:'🔦', lbl:'Фонарик', id:'torch' },
+];
+
+const MOB_APP_CONTENT = {
+  camera: { title:'📷 Камера', body:`<div style="text-align:center;padding:40px 0;"><div style="font-size:80px;margin-bottom:16px;">📷</div><div style="color:var(--text2);font-size:14px;">Камера симулятора<br>Нажмите для «съёмки»</div><button onclick="this.textContent='📸 Снято!';setTimeout(()=>this.textContent='🔵 Снять фото',1500)" style="margin-top:20px;width:60px;height:60px;border-radius:50%;border:4px solid white;background:rgba(255,255,255,.2);font-size:24px;cursor:pointer;">🔵</button></div>` },
+  browser: { title:'🌐 Браузер', body:`<div style="background:rgba(255,255,255,.05);border-radius:12px;padding:10px 14px;display:flex;align-items:center;gap:8px;margin-bottom:16px;"><span>🔒</span><span style="font-size:13px;color:var(--text2);">yo://new-tab</span></div><div style="text-align:center;padding:30px 0;font-size:14px;color:var(--text2);">Добро пожаловать в YO Browser<br><br>Быстрый, безопасный, минималистичный.</div>` },
+  settings: { title:'⚙️ Настройки', body:`<div style="display:flex;flex-direction:column;gap:1px;border-radius:12px;overflow:hidden;">${['👤 Аккаунт','📶 Сеть и Wi-Fi','🔔 Уведомления','🎨 Оформление','🔒 Безопасность','🔋 Батарея','ℹ️ О системе'].map(t=>`<div style="background:rgba(255,255,255,.05);padding:14px 16px;font-size:14px;border-bottom:1px solid rgba(255,255,255,.04);cursor:pointer;">${t} <span style="float:right;color:var(--text3)">›</span></div>`).join('')}</div>` },
+  about: { title:'ℹ️ О системе', body:`<div style="text-align:center;padding:20px 0;"><div style="width:72px;height:72px;border-radius:20px;background:linear-gradient(135deg,var(--purple),var(--cyan));display:flex;align-items:center;justify-content:center;font-size:30px;font-weight:900;margin:0 auto 16px;">YO</div><div style="font-size:20px;font-weight:800;margin-bottom:4px;">YOOS 1.0</div><div style="font-size:13px;color:var(--text2);">by YO Systems™</div></div><div style="display:flex;flex-direction:column;gap:1px;border-radius:12px;overflow:hidden;margin-top:16px;">${[['Пользователь','<span id="mobAboutUser">—</span>'],['Версия','YOOS 1.0.0'],['Ядро','YO-Kernel 6.1.4'],['Архитектура','ARM64']].map(([k,v])=>`<div style="background:rgba(255,255,255,.05);padding:12px 14px;font-size:13px;border-bottom:1px solid rgba(255,255,255,.04);display:flex;justify-content:space-between;"><span style="color:var(--text2)">${k}</span><span>${v}</span></div>`).join('')}</div>` },
+  calc: { title:'🧮 Калькулятор', body:`<div id="calcDisplay" style="text-align:right;font-size:32px;font-weight:700;padding:16px;min-height:60px;background:rgba(255,255,255,.04);border-radius:12px;margin-bottom:12px;overflow:hidden;">0</div><div style="display:grid;grid-template-columns:repeat(4,1fr);gap:8px;">${['C','±','%','÷','7','8','9','×','4','5','6','−','1','2','3','+','0','.',null,'='].map(b=>b===null?`<div></div>`:`<button onclick="calcBtn('${b}')" style="padding:14px;border-radius:12px;border:none;background:${b==='='?'linear-gradient(135deg,var(--purple),var(--cyan))':'rgba(255,255,255,.07)'};color:white;font-size:16px;font-weight:600;cursor:pointer;">${b}</button>`).join('')}</div>` },
+  notes: { title:'🗒️ Заметки', body:`<textarea placeholder="Ваши заметки..." style="width:100%;height:calc(100vh - 180px);background:rgba(255,255,255,.04);border:1px solid var(--border);border-radius:12px;color:var(--text);font-size:14px;padding:14px;outline:none;resize:none;font-family:'Inter',sans-serif;line-height:1.6;"></textarea>` },
+};
+
+let calcExpr = '0';
+function calcBtn(b) {
+  const d = document.getElementById('calcDisplay');
+  if (!d) return;
+  if (b==='C') { calcExpr='0'; d.textContent='0'; return; }
+  if (b==='=') { try { let r=Function(`return ${calcExpr.replace('×','*').replace('÷','/').replace('−','-')}`)(); d.textContent=r; calcExpr=String(r); } catch(e){ d.textContent='Ошибка'; calcExpr='0'; } return; }
+  if (calcExpr==='0'&&!'+-×÷−'.includes(b)) calcExpr='';
+  calcExpr+=b; d.textContent=calcExpr;
+}
+
+function launchMobile() {
+  const u = installData.username || 'Пользователь';
+  document.getElementById('mobWelcomeNotif').textContent = `Добро пожаловать, ${u}!`;
+  document.getElementById('mobWifiNotif').textContent = `Подключено к ${installData.wifi||'Wi-Fi'}`;
+
+  const grid = document.getElementById('mobApps');
+  grid.innerHTML = '';
+  MOB_APPS.forEach(app=>{
+    const d = document.createElement('div');
+    d.className = 'mob-app';
+    d.style.background = 'rgba(255,255,255,.07)';
+    d.innerHTML = `<div class="mob-app-ico">${app.ico}</div><div class="mob-app-lbl">${app.lbl}</div>`;
+    d.onclick = ()=>openMobApp(app.id);
+    grid.appendChild(d);
+  });
+
+  const days = ['Воскресенье','Понедельник','Вторник','Среда','Четверг','Пятница','Суббота'];
+  const months = ['января','февраля','марта','апреля','мая','июня','июля','августа','сентября','октября','ноября','декабря'];
+  const now = new Date();
+  document.getElementById('mobDateStr').textContent = `${days[now.getDay()]}, ${now.getDate()} ${months[now.getMonth()]}`;
+
+  updateClock();
+  setInterval(updateClock, 1000);
+  document.getElementById('desktopMobile').classList.add('visible');
+}
+
+function openMobApp(id) {
+  const app = MOB_APP_CONTENT[id] || { title:'🔜 Приложение', body:`<div style="text-align:center;padding:40px;color:var(--text2);">Это приложение ещё в разработке 🚧</div>` };
+  document.getElementById('mobOverlayTitle').textContent = app.title;
+  document.getElementById('mobOverlayBody').innerHTML = app.body;
+  document.getElementById('mobOverlay').classList.remove('hidden');
+  // fill user
+  const mu = document.getElementById('mobAboutUser');
+  if (mu) mu.textContent = installData.username || 'Пользователь';
+}
+
+function closeMobApp() { document.getElementById('mobOverlay').classList.add('hidden'); }
+
+function closeNotifDrawer() { document.getElementById('notifDrawer').classList.remove('open'); }
+
+// Status bar swipe down
+let touchStartY = 0;
+document.getElementById('desktopMobile').addEventListener('touchstart', e=>{ touchStartY = e.touches[0].clientY; }, {passive:true});
+document.getElementById('desktopMobile').addEventListener('touchmove', e=>{
+  if (e.touches[0].clientY - touchStartY > 60 && touchStartY < 60) {
+    document.getElementById('notifDrawer').classList.add('open');
+  }
+}, {passive:true});
+
+// ─── REBOOT ───────────────────────────────────────────────────
+function reboot() {
+  hideAllDesktops();
+  showScreen('splash');
+  setTimeout(()=>{ showScreen('deviceDetect'); applyDetection(); }, 2500);
+}
+</script>
+</body>
+</html>
